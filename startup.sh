@@ -14,6 +14,7 @@ chown -R asterisk:asterisk /backup
 
 
 echo "Starting MySQL..."
+sed -i 's|max_allowed_packet\t= 16M|max_allowed_packet\t= 1024M|g' /etc/mysql/conf.d/mysqldump.cnf
 /etc/init.d/mysql start
 status=$?
 if [ $status -ne 0 ]; then
@@ -22,12 +23,23 @@ if [ $status -ne 0 ]; then
 fi
 
 
+echo "Unarchaving Certificates..."
+if [ -f /pbx.ntel.ml.tar.gz ]; then
+  tar -xvf /pbx.ntel.ml.tar.gz -C /etc/asterisk/keys/
+  chown asterisk:asterisk /etc/asterisk/keys/pbx.ntel.ml*
+  chown asterisk:asterisk /etc/asterisk/keys/pbx.ntel.ml/*
+  chmod 600 /etc/asterisk/keys/pbx.ntel.ml*
+  chmod 700 /etc/asterisk/keys/pbx.ntel.ml
+  chmod 644 /etc/asterisk/keys/pbx.ntel.ml/*
+  # fwconsole certificates --import
+  # fwconsole certificates --default=1
+fi
 
 echo "Starting Apache..."
 if [ -f /etc/asterisk/keys/$CERTIFICATE_DOMAIN.pem ]; then
   echo "Found certificate at /etc/asterisk/keys/$CERTIFICATE_DOMAIN.pem (possibly LetsEncrypt cert). Setting Apache to use it."
-  sed -i 's|/etc/ssl/certs/ssl-cert-snakeoil.pem|/etc/asterisk/keys/'$CERTIFICATE_DOMAIN'.pem|g' /etc/apache2/sites-enabled/default-ssl.conf
-  sed -i 's|/etc/ssl/private/ssl-cert-snakeoil.key|/etc/asterisk/keys/'$CERTIFICATE_DOMAIN'.key|g' /etc/apache2/sites-enabled/default-ssl.conf
+  sed -i 's|/etc/ssl/certs/ssl-cert-snakeoil.pem|/etc/asterisk/keys/'$CERTIFICATE_DOMAIN'.pem|g' /etc/apache2/sites-available/default-ssl.conf
+  sed -i 's|/etc/ssl/private/ssl-cert-snakeoil.key|/etc/asterisk/keys/'$CERTIFICATE_DOMAIN'.key|g' /etc/apache2/sites-available/default-ssl.conf
 fi
 
 /etc/init.d/apache2 start
@@ -48,6 +60,12 @@ if [ $status -ne 0 ]; then
   exit $status
 fi
 
+
+if [ -f /etc/asterisk/keys/$CERTIFICATE_DOMAIN.pem ]; then
+  echo "Import Ceritificate"
+  fwconsole certificates --import
+  fwconsole certificates --default=1
+fi
 
 
 
@@ -103,6 +121,9 @@ if [ "$MARIADB_REMOTE_ROOT_PASSWORD" != "" ]; then
   mysql -u root -e "$QUERY"
 fi
 
+
+echo "Starting SSH Daemon..."
+service ssh start
 
 
 echo "STARTUP COMPLETED"

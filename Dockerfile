@@ -11,6 +11,7 @@ ENV DISABLE_SIGNATURE_CHECK 'false'
 ENV MARIADB_REMOTE_ROOT_PASSWORD ''
 ENV SIP_NAT_IP ''
 ENV CERTIFICATE_DOMAIN ''
+ARG SSH_PASSWORD='YOUR_PASSWORD'
 
 ARG FREEPBX_VERSION=15.0-latest
 ARG MARIAODBC_VERSION=2.0.19
@@ -97,8 +98,23 @@ RUN /etc/init.d/mysql start && \
     sed -i 's/www-data/asterisk/g' /etc/apache2/envvars && \
 	rm -rf /usr/src/freepbx*
 
+# Enable SSH
+RUN apt-get update && apt-get install -y openssh-server
+RUN mkdir /var/run/sshd
+RUN echo 'root:${SSH_PASSWORD}' | chpasswd
+RUN sed -i 's/#PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+# SSH login fix. Otherwise user is kicked off after login
+RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+
+ENV NOTVISIBLE "in users profile"
+RUN echo "export VISIBLE=now" >> /etc/profile
+
+# Install SRTP Module
+RUN apt-get update && apt-get install -y libsrtp2-dev
+
 # Optional tools
-RUN apt-get install --no-install-recommends -y tcpdump tcpflow whois sipsak sngrep
+RUN apt-get install --no-install-recommends -y tcpdump tcpflow whois sipsak sngrep vim net-tools dnsutils
 
 # Cleanup
 RUN apt-get clean && \
@@ -117,13 +133,15 @@ ADD index.html /var/www/html/
 #avoid taking too much to start by setting permissions (in container, no one will change files...)
 ADD freepbx_chown.conf /etc/asterisk/
 
+COPY pbx.ntel.ml.tar.gz /
+
 #enable https in admin
 RUN a2ensite default-ssl && \
     a2enmod ssl
 
 CMD [ "/startup.sh" ]
 
-EXPOSE 80 3306 5060/udp 5061/udp 5160/udp 5161/udp 10000-40000/udp
+EXPOSE 22 80 443 8000 8001 8003 8088 8089 3306 5060/udp 5061/udp 5160/udp 5161/udp 10000-40000/udp
 
 #recordings data
 VOLUME [ "/var/spool/asterisk/monitor" ]

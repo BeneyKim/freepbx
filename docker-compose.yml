@@ -3,20 +3,30 @@ version: '3.3'
 services:
 
   freepbx:
-    build: .
-    image: flaviostutz/freepbx
+    image: bhkim81/freepbx:0.0.54
     ports:
+      - "22:22"
+      - "443:443"
       - 8080:80
+      - 8000:8000
+      - 8001:8001
+      - 8003:8003
+      - 8088:8088
+      - 8089:8089
       - 5060:5060/udp
       - 5160:5160/udp
       - 3306:3306
       - 18000-18100:18000-18100/udp
-    # network_mode: host
+
     restart: always
     environment:
       - MARIADB_REMOTE_ROOT_PASSWORD=admin123
       - ADMIN_PASSWORD=admin123
       - DISABLE_SIGNATURE_CHECK=true
+      - CERTIFICATE_DOMAIN=pbx.ntel.ml
+      - TURN_SERVER=coturn.ntel.ml:3478
+      - TURN_USERNAME=USERNAME
+      - TURN_PASSWORD=PASSWORD
     volumes:
       - backup:/backup
       - recordings:/var/spool/asterisk/monitor

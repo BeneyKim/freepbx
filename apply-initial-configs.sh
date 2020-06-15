@@ -37,6 +37,30 @@ sed -i 's/"externip": "186.195.33.54"/"externip": "'$SIP_NAT_IP'"/' Sipsettings.
 # echo "Sipsettings.json"
 # cat Sipsettings.json
 
+# ADD COTURN
+sed -i 's/"stunaddr": ""/"stunaddr": "'$TURN_SERVER'"/' Sipsettings.json
+sed -i 's/"turnaddr": ""/"turnaddr": "'$TURN_SERVER'"/' Sipsettings.json
+sed -i 's/"turnusername": ""/"turnusername": "'$TURN_USERNAME'"/' Sipsettings.json
+sed -i 's/"turnpassword": ""/"turnpassword": "'$TURN_PASSWORD'"/' Sipsettings.json
+sed -i 's/"webrtcstunaddr": ""/"webrtcstunaddr": "'$TURN_SERVER'"/' Sipsettings.json
+sed -i 's/"webrtcturnaddr": ""/"webrtcturnaddr": "'$TURN_SERVER'"/' Sipsettings.json
+sed -i 's/"webrtcturnusername": ""/"webrtcturnusername": "'$TURN_USERNAME'"/' Sipsettings.json
+sed -i 's/"webrtcturnpassword": ""/"webrtcturnpassword": "'$TURN_PASSWORD'"/' Sipsettings.json
+sed -i 's/"tlsportowner": ""/"tlsportowner": "pjsip"/' Sipsettings.json
+sed -i 's/"pjsipcertid": ""/"pjsipcertid": "2"/' Sipsettings.json
+
+
+# APPLY HTTPS
+sed -i 's/"HTTPTLSENABLE": "0"/"HTTPTLSENABLE": "1"/' Framework.json
+sed -i 's|"HTTPTLSCERTFILE": ""|"HTTPTLSCERTFILE": "/etc/asterisk/keys/'$CERTIFICATE_DOMAIN'.pem"|g' Framework.json
+sed -i 's|"HTTPTLSPRIVATEKEY": ""|"HTTPTLSPRIVATEKEY": "/etc/asterisk/keys/'$CERTIFICATE_DOMAIN'.key"|g' Framework.json
+
+
+# UCP NODE JS
+sed -i 's|"NODEJSTLSCERTFILE": ""|"NODEJSTLSCERTFILE": "/etc/asterisk/keys/'$CERTIFICATE_DOMAIN'.pem"|g' Ucp.json
+sed -i 's|"NODEJSTLSPRIVATEKEY": ""|"NODEJSTLSPRIVATEKEY": "/etc/asterisk/keys/'$CERTIFICATE_DOMAIN'.key"|g' Ucp.json
+
+
 echo "Assembling updated backup archive..."
 
 cd /tmp/basic-config
@@ -47,7 +71,7 @@ mv /tmp/modulejson/Core.json modulejson/
 mv /tmp/modulejson/Filestore.json modulejson/
 mv /tmp/modulejson/Backup.json modulejson/
 mv /tmp/modulejson/Sipsettings.json modulejson/
-
+mv /tmp/modulejson/Ucp.json modulejson/
 tar -czvf /tmp/updated-config.tar.gz .
 
 echo "Restoring backup contents with initial configurations..."
